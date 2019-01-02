@@ -1061,37 +1061,10 @@ class bulktag(Command):
    
     def execute(self):  # pylint: disable=too-many-locals,too-many-statements
         import sys
-        import copy
         import tempfile
         from ranger.container.file import File
         from ranger.ext.shell_escape import shell_escape as esc
         from mp3_tagger import MP3File, VERSION_2
-        
-        def get_tag(files,tag):
-            if tag == 'artist':
-                return files.artist
-            elif tag == 'album':
-                return files.album
-            elif tag == 'song':
-                return files.song
-            elif tag == 'track':
-                return files.track
-            elif tag == 'comment':
-                return files.comment
-            elif tag == 'year':
-                return files.year
-            elif tag == 'genre':
-                return files.genre
-            elif tag == 'band':
-                return files.band
-            elif tag == 'composer':
-                return files.composer
-            elif tag == 'copyright':
-                return files.copyright
-            elif tag == 'url':
-                return files.url
-            elif tag == 'publisher':
-                return files.publisher
 
         accepted_tags = ['album','artist','song','track','comment','year','genre','band','composer','copyright','url','publisher']
         
@@ -1114,8 +1087,7 @@ class bulktag(Command):
         filenames = [f.relative_path for f in self.fm.thistab.get_selection()]
         listfile = tempfile.NamedTemporaryFile(delete=False)
         listpath = listfile.name
-        mp3_list = [MP3File(i) for i in filenames]
-        taglist = [get_tag(i,tag) for i in mp3_list]
+        taglist = [getattr(MP3File(i),tag) for i in filenames]
         if py3:
             listfile.write("\n".join(taglist).encode("utf-8"))
         else:
@@ -1137,8 +1109,7 @@ class bulktag(Command):
         j = 0
         for i in filenames:
             mp3 = MP3File(i)
-            x = get_tag(mp3,tag)
-            x = new_taglist[j]
+            setattr(mp3,tag,new_taglist[j])
             mp3.save()
             j+=1
         self.fm.notify("Retagging complete.")
