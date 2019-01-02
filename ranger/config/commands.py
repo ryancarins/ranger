@@ -1051,6 +1051,101 @@ class chmod(Command):
         # files only.
         self.fm.thisdir.content_outdated = True
 
+class bulktag(Command):
+    """:bulktag
+
+    This command opens a list of selected mp3s tags in an external editor.
+    After you edit and save the file, it will save the new tag values
+    """
+    
+   
+    def execute(self):  # pylint: disable=too-many-locals,too-many-statements
+        import sys
+        import copy
+        import tempfile
+        from ranger.container.file import File
+        from ranger.ext.shell_escape import shell_escape as esc
+        from mp3_tagger import MP3File, VERSION_2
+        
+        def get_tag(files,tag):
+            if tag == 'artist':
+                return files.artist
+            elif tag == 'album':
+                return files.album
+            elif tag == 'song':
+                return files.song
+            elif tag == 'track':
+                return files.track
+            elif tag == 'comment':
+                return files.comment
+            elif tag == 'year':
+                return files.year
+            elif tag == 'genre':
+                return files.genre
+            elif tag == 'band':
+                return files.band
+            elif tag == 'composer':
+                return files.composer
+            elif tag == 'copyright':
+                return files.copyright
+            elif tag == 'url':
+                return files.url
+            elif tag == 'publisher':
+                return files.publisher
+
+        accepted_tags = ['album','artist','song','track','comment','year','genre','band','composer','copyright','url','publisher']
+        
+        if len(self.args) != 2:
+            self.fm.notify("Function requires a tag name e.g bulktag album")
+            return
+
+        tag = self.arg(1)
+        tag = tag.lower()
+        if tag not in accepted_tags:
+            self.fm.notify("Invalid tag")
+            return
+        
+        #Set mp3-tagger to id3v2
+        MP3File.set_version(VERSION_2)
+        
+        py3 = sys.version_info[0] >= 3
+
+        # Create and edit the file list
+        filenames = [f.relative_path for f in self.fm.thistab.get_selection()]
+        listfile = tempfile.NamedTemporaryFile(delete=False)
+        listpath = listfile.name
+        mp3_list = [MP3File(i) for i in filenames]
+        taglist = [get_tag(i,tag) for i in mp3_list]
+        if py3:
+            listfile.write("\n".join(taglist).encode("utf-8"))
+        else:
+            listfile.write("\n".join(taglist))
+        listfile.close()
+        self.fm.execute_file([File(listpath)], app='editor')
+        listfile = open(listpath, 'r')
+        new_taglist = listfile.read().split("\n")
+        listfile.close()
+        os.unlink(listpath)
+        if all(a == b for a, b in zip(taglist, new_taglist)):
+            self.fm.notify("No renaming to be done!")
+            return
+        if len(taglist) == len(new_taglist)-1 and new_taglist[-1] == '':
+            new_taglist = new_taglist[:-1]
+        if len(taglist) != len(new_taglist):
+            self.fm.notify("Wrong number of tags. Exiting.")
+            return
+        j = 0
+        for i in filenames:
+            mp3 = MP3File(i)
+            x = get_tag(mp3,tag)
+            x = new_taglist[j]
+            mp3.save()
+            j+=1
+        self.fm.notify("Retagging complete.")
+
+
+
+
 
 class bulkrename(Command):
     """:bulkrename

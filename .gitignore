@@ -1,5 +1,8 @@
 *.pyc
 *.pyo
+odr*
+venv
+
 
 *~
 *.orig
