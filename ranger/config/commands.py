@@ -1065,6 +1065,12 @@ class bulktag(Command):
         from ranger.container.file import File
         from ranger.ext.shell_escape import shell_escape as esc
         from mp3_tagger import MP3File, VERSION_2
+        
+        def checktag(mp3,tag):
+            contents = getattr(mp3,tag)
+            if contents == []:
+                contents = "None"
+            return contents
 
         accepted_tags = ['album','artist','song','track','comment','year','genre','band','composer','copyright','url','publisher']
         
@@ -1085,9 +1091,18 @@ class bulktag(Command):
 
         # Create and edit the file list
         filenames = [f.relative_path for f in self.fm.thistab.get_selection()]
+
+        #Regex to check if the file is an mp3 to avoid the user running the tagger on regular files
+        mp3_regex = re.compile(".*\.mp3$")
+        if not all([mp3_regex.match(name) for name in filenames]):
+            self.fm.notify("Not all marked files are mp3s. Select only mp3 files")
+            return
+
+        self.fm.notify(filenames)
         listfile = tempfile.NamedTemporaryFile(delete=False)
         listpath = listfile.name
-        taglist = [getattr(MP3File(i),tag) for i in filenames]
+        taglist = [checktag(MP3File(i),tag) for i in filenames]
+        self.fm.notify(taglist)
         if py3:
             listfile.write("\n".join(taglist).encode("utf-8"))
         else:
@@ -1113,9 +1128,6 @@ class bulktag(Command):
             mp3.save()
             j+=1
         self.fm.notify("Retagging complete.")
-
-
-
 
 
 class bulkrename(Command):

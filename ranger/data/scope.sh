@@ -88,6 +88,10 @@ handle_extension() {
             jq --color-output . "${FILE_PATH}" && exit 5
             python -m json.tool -- "${FILE_PATH}" && exit 5
             ;;
+        #MP3
+        mp3)
+            bulktag.py "${FILE_PATH}" && exit 5
+            exit 1;;
     esac
 }
 
